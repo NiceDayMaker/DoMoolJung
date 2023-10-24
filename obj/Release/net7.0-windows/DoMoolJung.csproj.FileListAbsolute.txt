@@ -19,3 +19,5 @@ C:\Users\niced\Documents\GitHub\DoMoolJung\obj\Release\net7.0-windows\refint\DoM
 C:\Users\niced\Documents\GitHub\DoMoolJung\obj\Release\net7.0-windows\DoMoolJung.pdb
 C:\Users\niced\Documents\GitHub\DoMoolJung\obj\Release\net7.0-windows\DoMoolJung.genruntimeconfig.cache
 C:\Users\niced\Documents\GitHub\DoMoolJung\obj\Release\net7.0-windows\ref\DoMoolJung.dll
+C:\Users\niced\Documents\GitHub\DoMoolJung\obj\Release\net7.0-windows\Helper.g.cs
+C:\Users\niced\Documents\GitHub\DoMoolJung\obj\Release\net7.0-windows\Helper.baml

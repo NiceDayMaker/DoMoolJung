@@ -1,0 +1,79 @@
+{
+   "checksum": "a6c773b05d9071d21f8bdc8dea30e2ba",
+   "roots": {
+      "bookmark_bar": {
+         "children": [ {
+            "date_added": "13342466296859055",
+            "date_last_used": "0",
+            "guid": "1da27b04-8ca6-4a42-bcd3-71455bd6d64a",
+            "id": "10",
+            "name": "Adobe Acrobat Pro DC for Samsung",
+            "show_icon": false,
+            "source": "oem_preload",
+            "type": "url",
+            "url": "http://www.adobe.com/go/samsung_apdc"
+         }, {
+            "date_added": "13342466296858919",
+            "date_last_used": "0",
+            "guid": "81c0bbab-eb69-4470-a2ce-630dcf3423d6",
+            "id": "9",
+            "name": "Adobe Creative Cloud All Apps for Samsung",
+            "show_icon": false,
+            "source": "oem_preload",
+            "type": "url",
+            "url": "http://www.adobe.com/go/samsung_cci"
+         }, {
+            "date_added": "13342466296858770",
+            "date_last_used": "0",
+            "guid": "9459750a-43d8-4b26-bd80-d2e7eec45e74",
+            "id": "8",
+            "name": "Adobe Premiere Pro CC for Samsung",
+            "show_icon": false,
+            "source": "oem_preload",
+            "type": "url",
+            "url": "http://www.adobe.com/go/samsung_ppcc"
+         }, {
+            "date_added": "13342466296858193",
+            "date_last_used": "0",
+            "guid": "97a2c1c4-a5cc-4730-a2e6-16985ab54818",
+            "id": "7",
+            "name": "McAfee LiveSafe - Benefits for Samsung PC users",
+            "show_icon": false,
+            "source": "oem_preload",
+            "type": "url",
+            "url": "https://home.mcafee.com/root/campaign.aspx?cid=249249"
+         } ],
+         "date_added": "13342466296804879",
+         "date_last_used": "0",
+         "date_modified": "13342466296859055",
+         "guid": "0bc5d13f-2cba-5d74-951f-3f233fe6c908",
+         "id": "1",
+         "name": "즐겨찾기 모음",
+         "source": "unknown",
+         "type": "folder"
+      },
+      "other": {
+         "children": [  ],
+         "date_added": "13342466296804882",
+         "date_last_used": "0",
+         "date_modified": "0",
+         "guid": "82b081ec-3dd3-529c-8475-ab6c344590dd",
+         "id": "2",
+         "name": "다른 즐겨찾기",
+         "source": "unknown",
+         "type": "folder"
+      },
+      "synced": {
+         "children": [  ],
+         "date_added": "13342466296804889",
+         "date_last_used": "0",
+         "date_modified": "0",
+         "guid": "4cf2e351-0e85-532b-bb37-df045d8f8d0f",
+         "id": "3",
+         "name": "모바일 즐겨찾기",
+         "source": "unknown",
+         "type": "folder"
+      }
+   },
+   "version": 1
+}

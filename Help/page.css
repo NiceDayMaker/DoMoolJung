@@ -1,0 +1,126 @@
+html {
+    background-color: #212226;
+    background-image: url("images/background.png");
+    background-size: 12vw;
+    background-blend-mode:luminosity;
+}
+
+h1 {
+  font-family: 'NanumSquareNeo';
+  margin: 0;
+  text-align: center;
+  padding: 20px 20px 20px 20px;
+  font-size: 6vw;
+  color: #7eb5e6;
+  text-shadow: 3px 3px 1px black;
+}
+
+.colorscripter-1 {
+  width: 100%;
+  margin:0 0 70px 0;
+  padding:0;
+  border:none;
+  background-color:#212226;
+  border-radius:0.5em;
+}
+
+.colorscripter-2 {
+  padding:6px 6px 6px 0;
+  border-right:2px solid #4f4f4f;
+  width: 2rem;
+}
+
+.colorscripter-3 {
+  margin:0;
+  padding:0;
+  word-break:normal;
+  font-size: 1.8vw;
+  text-align:right;
+  color:#aaa;
+  font-family:Consolas !important;
+  line-height: 1.5em;
+}
+
+.colorscripter-4 {
+  line-height: 1.5em;
+}
+
+.colorscripter-5 {
+  padding:6px 0;
+  text-align:left
+}
+
+.colorscripter-6 {
+  margin:0;
+  padding:0;
+  color:#f0f0f0;
+  font-family:NanumSquareNeo !important;
+  line-height: 1.5em;
+}
+
+.colorscripter-7 {
+  padding:0 6px;
+  font-size: 1.8vw;
+  white-space:pre;
+  line-height: 1.5em;
+}
+
+.colorscripter-keyword0 {
+  color: #32e7ff;
+}
+
+.colorscripter-keyword1 {
+  color: #ff3499;
+}
+
+.colorscripter-keyword2 {
+  color: #025d86;
+}
+
+.colorscripter-keywordnum {
+  color: #13e977;
+}
+
+.colorscripter-keywordstr {
+  color: #ffc400;
+}
+
+.colorscripter-keywordanno {
+  color: #9dacbc;
+}
+
+h2 {
+  font-family: 'NanumSquareNeo';
+  font-size: 2vw;
+  text-wrap: wrap;
+  line-height: 1.5em;
+  color: aliceblue;
+}
+
+h4 {
+  font-family: 'NanumJungHagSaeng';
+  font-size: 3vw;
+  text-wrap: wrap;
+  line-height: 1.5em;
+  color: aliceblue;
+}
+
+h3 {
+  font-family: 'NanumSquareNeo';
+  font-size: 1.8vw;
+  text-wrap: wrap;
+  color: aliceblue;
+  background-color: #212226;
+  border-radius: 0.5em;
+  line-height: 1.5em;
+  padding: 10px 20px 10px 20px;
+  margin: 0 0 70px 0;
+}
+
+.div1 {
+  background-color: #313236;
+  border-radius: 5px;
+  padding: 20px 20px 20px 20px;
+  margin: 20vh 10vw 5vh 10vw;
+}
+  

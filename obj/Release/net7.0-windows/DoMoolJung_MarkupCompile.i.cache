@@ -5,16 +5,16 @@ exe
 C#
 .cs
 C:\Users\niced\Documents\GitHub\DoMoolJung\obj\Release\net7.0-windows\
-C_orea
+DoMoolJung
 none
 false
 TRACE;RELEASE;NET;NET7_0;NETCOREAPP
 C:\Users\niced\Documents\GitHub\DoMoolJung\App.xaml
-11407045341
+2-1153625570
 
-71169589643
+8-1657295039
 1981827736222
-MainWindow.xaml;
+Helper.xaml;MainWindow.xaml;
 
-False
+True
 

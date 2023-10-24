@@ -5,20 +5,21 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DoMoolJung"
         mc:Ignorable="d"
-        Title="ㄷ井 두물정 1.0 - 이름없음*" Height="200" Width="200" MinHeight="600" MinWidth="500" Background="#4c5052">
+        Closing="Window_Closing"
+        Title="ㄷ井 두물정 1.0 - 이름없음*" WindowState="Maximized" Background="#4c5052" MinHeight="300" MinWidth="300" Height="600" Width="500">
+
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="50"/>
+            <RowDefinition Height="30" />
             <RowDefinition Height="1*"/>
             <RowDefinition Height="50"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="50"/>
+            <ColumnDefinition x:Name='LinerWidth' Width="50"/>
             <ColumnDefinition Width="1*"/>
         </Grid.ColumnDefinitions>
         <Button x:Name="Compile" Content="  실행  " HorizontalAlignment="Right" Grid.Row="3" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,30,0" Click="OnCompile"/>
-        <Button x:Name="Save" Content="  저장  " HorizontalAlignment="Left" Grid.Column="0" Grid.ColumnSpan="2" VerticalAlignment="Center" Margin="20,0,0,0" Click="btnSaveFile_Click"/>
-        <Button x:Name="Open" Content="  열기  " HorizontalAlignment="Left" Grid.Column="1" VerticalAlignment="Center" Margin="30,0,0,0" Click="btnOpenFile_Click"/>
+
         <TextBox
             x:Name="Source"
             Grid.Row="1"
@@ -26,22 +27,21 @@
             Grid.ColumnSpan="2"
             Margin="10,0,10,0"
             Padding="40,1,0,0"
-            Text="#여기에 코드를 작성하세요"
+            Text="주석 여기에 코드를 작성하세요"
             Background="#3c3f41"
             Foreground="AliceBlue"
-            FontSize="12"
+            FontSize="15"
             AcceptsReturn="True"
             AcceptsTab="True"
-            KeyDown="textBox_KeyDown"
             ScrollViewer.CanContentScroll="True"
-            ScrollViewer.HorizontalScrollBarVisibility="Auto"
+            ScrollViewer.HorizontalScrollBarVisibility="Visible"
             ScrollViewer.VerticalScrollBarVisibility="Visible"
             TextChanged="Source_TextChanged"/>
         <TextBox 
             x:Name="Liner"
             HorizontalAlignment="Stretch"
-            Margin="10,0,5,0" 
-            Padding="0,1,5,0" 
+            Margin="10,0,0,20" 
+            Padding="0,1,1,0"
             TextWrapping="NoWrap" 
             Cursor="Arrow"
             CaretBrush="Snow"
@@ -56,6 +56,12 @@
             ScrollViewer.VerticalScrollBarVisibility="Hidden"
             TextAlignment="Right"
             IsEnabled="False"
-            FontSize="12"/>
+            FontSize="15"/>
+        <WrapPanel Orientation="Horizontal" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,10" Background='#2c2f31'>
+            <Button x:Name="Open" Content="  열기  " HorizontalAlignment="Left" VerticalAlignment="Center" Background='#2c2f31' Foreground="AliceBlue" Click="btnOpenFile_Click"/>
+            <Button x:Name="Save" Content="  저장  " HorizontalAlignment="Left" VerticalAlignment="Center" Background='#2c2f31' Foreground="AliceBlue" Click="btnSaveFile_Click"/>
+            <Button x:Name="Help" Content="  도움말  " HorizontalAlignment="Left" VerticalAlignment="Center" Background='#2c2f31' Foreground="AliceBlue" Click="btnHelp_Click"/>
+        </WrapPanel>
+        <Label x:Name="Scale" Content="100%" HorizontalAlignment="Left" Height="15" Width="50" Margin="15,0,0,0" Padding="0" Grid.Row="2" Foreground="AliceBlue" Grid.Column="0" Grid.ColumnSpan="2" FontSize="12" VerticalAlignment="Top"/>
     </Grid>
 </Window>
