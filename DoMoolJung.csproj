@@ -31,11 +31,19 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Fonts\D2Coding.ttf" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="Icon.ico" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2045.28" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Fonts\D2Coding.ttf" />
   </ItemGroup>
 
 </Project>

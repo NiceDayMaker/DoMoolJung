@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Text;
 using System.Threading;
 
@@ -7,11 +9,6 @@ namespace DoMoolJung
 {
 	public static class BuiltInMethods
 	{
-		public static Token MethodRunner(Token[] tokens)
-		{
-			return new Token();
-		}
-
 		public static Token Print(Token[] tokens)
 		{
 			if (tokens[0].type == token_type.Method)
@@ -41,7 +38,7 @@ namespace DoMoolJung
 
 		public static Token Input(Token[] tokens)
 		{
-			return new Token(Console.ReadLine() ?? "", -1, token_type.Var, token_type.String);
+			return new Token(Console.ReadLine(), -1, token_type.Var, token_type.String);
 		}
 
 		public static Token Clear(Token[] tokens)
@@ -102,6 +99,47 @@ namespace DoMoolJung
 			return new Token();
 		}
 
+		public static Token PythonRunner(Token[] tokens)
+		{
+			DirectoryInfo di = new DirectoryInfo($"{Path.GetTempPath()}\\DoMoolJung");
+			if (!di.Exists)
+				di.Create();
+			string FileName = $"{Path.GetTempPath()}\\DoMoolJung\\{Path.GetRandomFileName}";
+
+			using (var sw = new StreamWriter(File.Create(FileName)))
+			{
+				sw.Write(tokens[0].text);
+			}
+
+			Process pro = new Process();
+
+			pro.StartInfo.FileName = "python";
+			pro.StartInfo.Arguments = FileName;
+			pro.StartInfo.CreateNoWindow = true;
+			pro.StartInfo.UseShellExecute = false;
+			pro.StartInfo.RedirectStandardOutput = true;
+			pro.StartInfo.RedirectStandardError = true;
+
+			try
+			{
+				pro.Start();
+			}
+			catch
+			{
+				throw new Exception($"{MainWindow.Tokens[MainWindow.TokenIndex].type} {MainWindow.Tokens[MainWindow.TokenIndex].returnType} {MainWindow.Tokens[MainWindow.TokenIndex].text} : 기기에 설치된 파이썬을 찾을 수 없습니다. 파이썬을 설치한 후 환경변수에 등록해 주십시오.");
+			}
+
+			string err = pro.StandardError.ReadToEnd();
+			if (err != "")
+			{
+				throw new Exception($"{MainWindow.Tokens[MainWindow.TokenIndex].type} {MainWindow.Tokens[MainWindow.TokenIndex].returnType} {MainWindow.Tokens[MainWindow.TokenIndex].text} : \n\n{err}");
+			}
+
+			string res = pro.StandardOutput.ReadToEnd();
+
+			return new Token(res, tokens[0].Line, token_type.Var, token_type.String);
+		}
+
 		public static Token Calc(bool isFormula)
 		{
 			Token a;
@@ -114,8 +152,12 @@ namespace DoMoolJung
 				a = MainWindow.Tokens[++MainWindow.TokenIndex];
 				if (a.type == token_type.Ident)
 				{
-					if (MainWindow.Variables.TryGetValue(a.text, out tmp)) a = tmp;
-					else throw new Exception($"[{a.Line}] {a.text}: 잘못된 식별자입니다.");
+					if (MainWindow.Variables.TryGetValue(a.text, out tmp))
+						a = tmp;
+					else if (MainWindow.Methods.TryGetValue(a.text, out tmp))
+						a = MainWindow.Run(tmp);
+					else
+						throw new Exception($"[{a.Line}] {a.text}: 잘못된 식별자입니다.");
 				}
 				else if (a.type == token_type.Equation)
 				{
@@ -131,8 +173,12 @@ namespace DoMoolJung
 				b = MainWindow.Tokens[++MainWindow.TokenIndex];
 				if (b.type == token_type.Ident)
 				{
-					if (MainWindow.Variables.TryGetValue(b.text, out tmp)) b = tmp;
-					else throw new Exception($"[{b.Line}] {b.text}: 잘못된 식별자입니다.");
+					if (MainWindow.Variables.TryGetValue(b.text, out tmp))
+						b = tmp;
+					else if (MainWindow.Methods.TryGetValue(b.text, out tmp))
+						b = MainWindow.Run(tmp);
+					else
+						throw new Exception($"[{b.Line}] {b.text}: 잘못된 식별자입니다.");
 				}
 				else if (b.type == token_type.Equation)
 				{
@@ -153,8 +199,12 @@ namespace DoMoolJung
 				a = MainWindow.Tokens[++MainWindow.TokenIndex];
 				if (a.type == token_type.Ident)
 				{
-					if (MainWindow.Variables.TryGetValue(a.text, out tmp)) a = tmp;
-					else throw new Exception($"[{a.Line}] {a.text}: 잘못된 식별자입니다.");
+					if (MainWindow.Variables.TryGetValue(a.text, out tmp))
+						a = tmp;
+					else if (MainWindow.Methods.TryGetValue(a.text, out tmp))
+						a = MainWindow.Run(tmp);
+					else
+						throw new Exception($"[{a.Line}] {a.text}: 잘못된 식별자입니다.");
 				}
 				else if (a.type == token_type.Equation)
 				{
@@ -171,8 +221,12 @@ namespace DoMoolJung
 				b = MainWindow.Tokens[++MainWindow.TokenIndex];
 				if (b.type == token_type.Ident)
 				{
-					if (MainWindow.Variables.TryGetValue(b.text, out tmp)) b = tmp;
-					else throw new Exception($"[{b.Line}] {b.text}: 잘못된 식별자입니다.");
+					if (MainWindow.Variables.TryGetValue(b.text, out tmp))
+						b = tmp;
+					else if (MainWindow.Methods.TryGetValue(b.text, out tmp))
+						b = MainWindow.Run(tmp);
+					else
+						throw new Exception($"[{b.Line}] {b.text}: 잘못된 식별자입니다.");
 				}
 				else if (b.type == token_type.Equation)
 				{
@@ -201,6 +255,10 @@ namespace DoMoolJung
 				case token_type.Divi:
 					{
 						return a / b;
+					}
+				case token_type.Modulo:
+					{
+						return a % b;
 					}
 				case token_type.Equal:
 					{
@@ -234,7 +292,6 @@ namespace DoMoolJung
 		public token_type returnType;
 		public token_type[] argTypes;
 		public List<Token> args;
-		public List<Token> codes;
 		public Func<Token[], Token> func;
 
 		public Token(string s, int line, token_type t, token_type r, token_type[] argType, Func<Token[], Token> fun)
@@ -246,7 +303,6 @@ namespace DoMoolJung
 			argTypes = argType;
 			func = fun;
 			args = new();
-			codes = new();
 		}
 
 		public Token(string s, int line, token_type t, token_type r)
@@ -256,9 +312,8 @@ namespace DoMoolJung
 			type = t;
 			returnType = r;
 			argTypes = Array.Empty<token_type>();
-			args = new();
 			func = null;
-			codes = new();
+			args = new();
 		}
 
 		public static Token operator +(Token a, Token b)
@@ -438,6 +493,33 @@ namespace DoMoolJung
 			}
 		}
 
+		public static Token operator %(Token a, Token b)
+		{
+			if ((a.returnType == token_type.Int || a.returnType == token_type.Float) && (b.returnType == token_type.Int || b.returnType == token_type.Float))
+			{
+				if (a.returnType == token_type.Int && b.returnType == token_type.Int)
+				{
+					if (int.TryParse(a.text, out int av) && int.TryParse(b.text, out int bv))
+					{
+						return new Token((av % bv).ToString(), a.Line, a.type, token_type.Int);
+					}
+					throw new Exception($"[{a.Line}] {a.text} {b.text} : 잘못된 자료형입니다.");
+				}
+				else
+				{
+					if (double.TryParse(a.text, out double av) && double.TryParse(b.text, out double bv))
+					{
+						return new Token((av % bv).ToString(), a.Line, a.type, token_type.Float);
+					}
+					throw new Exception($"[{a.Line}] {a.text} {b.text} : 잘못된 자료형입니다.");
+				}
+			}
+			else
+			{
+				throw new Exception($"[{a.Line}] {a.text} {b.text} : 잘못된 자료형입니다.");
+			}
+		}
+
 		public static Token operator ==(Token a, Token b)
 		{
 			if (a.returnType == b.returnType)
@@ -567,12 +649,12 @@ namespace DoMoolJung
 		None = 0,//아무것도 아님
 		Null,//빈 줄
 
-		Method, Flag, If, Else,//함수
+		Method, Flag, If, Else, Return,//함수
 
-		Void, Int, Float, String, //리터럴
-		Ident, Declar, MethodDeclar, Var, Formula, Equation, Python, Return,//식별자
+		Void, Int, Float, String, List, Code,//리터럴
+		Ident, Declar, Var, Formula, Equation,//식별자
 
-		Operator, Plus, Minus, Multi, Divi, //연산자
+		Operator, Plus, Minus, Multi, Divi, Modulo, //연산자
 		Brack, Brack_end,//소괄호
 		Block, Block_end,//블록
 		Assign,//대입 =
