@@ -144,7 +144,6 @@ namespace DoMoolJung
 			{
 				Compiler();
 				compilerSuccess = true;
-				Preprocessor();
 				watch.Restart();
 
 				await Task.Run(() => Runner());
@@ -192,144 +191,6 @@ namespace DoMoolJung
 			Methods.Add("지우기", new Token("지우기", -1, token_type.Method, token_type.Void, new token_type[0] { }, BuiltInMethods.Clear));
 		}
 
-		public void Preprocessor()
-		{
-			//변수 선언 전처리
-			for (TokenIndex = 0; TokenIndex < Tokens.Count; TokenIndex++)
-			{
-				if (Tokens[TokenIndex].type == token_type.Ident && Methods.TryGetValue(Tokens[TokenIndex].text, out Token tmp))
-				{
-					if (tmp.argTypes.Length > 0)
-					{
-						TokenIndex++;
-						for (int i = tmp.argTypes.Length - 1; i > 0; i--, TokenIndex++)
-						{
-							if (Tokens[TokenIndex].type == token_type.Ident && Methods.TryGetValue(Tokens[TokenIndex].text, out tmp))
-							{
-								i += tmp.argTypes.Length;
-							}
-						}
-					}
-				}
-				else if (Tokens[TokenIndex].type == token_type.Declar)
-				{
-					Token tmp_Variable = Tokens[TokenIndex];
-					Tokens.RemoveAt(TokenIndex);
-					string ident;
-					if (Tokens[TokenIndex].type == token_type.Ident)
-					{
-						ident = Tokens[TokenIndex].text;
-						if (UnUsableIdent.Contains(ident)) throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text}: 내장 구문은 식별자로 지정할 수 없습니다.");
-						if (Methods.ContainsKey(ident) || Variables.ContainsKey(ident)) throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text}: 이미 선언된 식별자입니다.");
-					}
-					else if (Tokens[TokenIndex].type == token_type.List)
-					{
-						Tokens.RemoveAt(TokenIndex);
-						if (Tokens[TokenIndex].type == token_type.Ident)
-						{
-							ident = Tokens[TokenIndex].text;
-							if (UnUsableIdent.Contains(ident)) throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text}: 내장 구문은 식별자로 지정할 수 없습니다.");
-							if (Methods.ContainsKey(ident) || Variables.ContainsKey(ident)) throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text}: 이미 선언된 식별자입니다.");
-
-							Tokens.RemoveAt(TokenIndex);
-							Methods.Add(ident, new Token($"{{List:{tmp_Variable.returnType.ToString()}}}", tmp_Variable.Line, token_type.List, tmp_Variable.returnType, new token_type[0] { }, BuiltInMethods.ListHandler));
-							TokenIndex--;
-
-							continue;
-						}
-						else
-						{
-							throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text} : 잘못된 식별자입니다.");
-						}
-					}
-					else
-					{
-						throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text} : 잘못된 식별자입니다.");
-					}
-
-					Tokens.RemoveAt(TokenIndex);
-					switch (tmp_Variable.returnType)
-					{
-						case token_type.Int:
-							{
-								if (Tokens[TokenIndex].type == token_type.Assign)
-								{
-									Tokens.RemoveAt(TokenIndex);
-									if (Tokens[TokenIndex].returnType == token_type.Int || Tokens[TokenIndex].returnType == token_type.Float)
-									{
-										Variables.Add(ident, new Token(((int)double.Parse(Tokens[TokenIndex].text)).ToString(), tmp_Variable.Line, token_type.Var, tmp_Variable.returnType));
-										Tokens.RemoveAt(TokenIndex);
-									}
-									else
-									{
-										throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text} : 잘못된 자료형입니다.");
-									}
-								}
-								else
-								{
-									Variables.Add(ident, new Token("0", tmp_Variable.Line, token_type.Var, tmp_Variable.returnType));
-								}
-								break;
-							}
-						case token_type.Float:
-							{
-								if (Tokens[TokenIndex].type == token_type.Assign)
-								{
-									Tokens.RemoveAt(TokenIndex);
-									if (Tokens[TokenIndex].returnType == token_type.Int || Tokens[TokenIndex].returnType == token_type.Float)
-									{
-										Variables.Add(ident, new Token(double.Parse(Tokens[TokenIndex].text).ToString(), tmp_Variable.Line, token_type.Var, tmp_Variable.returnType));
-										Tokens.RemoveAt(TokenIndex);
-									}
-									else
-									{
-										throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text} : 잘못된 자료형입니다.");
-									}
-								}
-								else
-								{
-									Variables.Add(ident, new Token("0.0", tmp_Variable.Line, token_type.Var, tmp_Variable.returnType));
-								}
-								break;
-							}
-						case token_type.String:
-							{
-								if (Tokens[TokenIndex].type == token_type.Assign)
-								{
-									Tokens.RemoveAt(TokenIndex);
-									if (Tokens[TokenIndex].returnType == token_type.String)
-									{
-										Variables.Add(ident, new Token(Tokens[TokenIndex].text, tmp_Variable.Line, token_type.Var, tmp_Variable.returnType));
-										Tokens.RemoveAt(TokenIndex);
-									}
-									else
-									{
-										throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text} : 잘못된 자료형입니다.");
-									}
-								}
-								else
-								{
-									Variables.Add(ident, new Token("", tmp_Variable.Line, token_type.Var, tmp_Variable.returnType));
-								}
-								break;
-							}
-						case token_type.Flag:
-							{
-								Variables.Add(ident, new Token((TokenIndex - 1).ToString(), tmp_Variable.Line, token_type.Flag, token_type.Flag));
-								break;
-							}
-						default:
-							{
-								if (Tokens[TokenIndex].type != token_type.Null)
-									throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text} : 잘못된 구문 입니다.");
-								break;
-							}
-					}
-					TokenIndex--;
-				}
-			}
-		}
-
 		public static int TokenIndex;
 		public bool StopWithKeyInterrupt;
 		public void Runner()
@@ -342,6 +203,123 @@ namespace DoMoolJung
 				}
 				switch (Tokens[TokenIndex].type)
 				{
+					case token_type.Declar:
+						{
+							Token tmp_Variable = Tokens[TokenIndex];
+							Tokens.RemoveAt(TokenIndex);
+							string ident;
+							if (Tokens[TokenIndex].type == token_type.Ident)
+							{
+								ident = Tokens[TokenIndex].text;
+								if (UnUsableIdent.Contains(ident)) throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text}: 내장 구문은 식별자로 지정할 수 없습니다.");
+								if (Methods.ContainsKey(ident) || Variables.ContainsKey(ident)) throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text}: 이미 선언된 식별자입니다.");
+							}
+							else if (Tokens[TokenIndex].type == token_type.List)
+							{
+								Tokens.RemoveAt(TokenIndex);
+								if (Tokens[TokenIndex].type == token_type.Ident)
+								{
+									ident = Tokens[TokenIndex].text;
+									if (UnUsableIdent.Contains(ident)) throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text}: 내장 구문은 식별자로 지정할 수 없습니다.");
+									if (Methods.ContainsKey(ident) || Variables.ContainsKey(ident)) throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text}: 이미 선언된 식별자입니다.");
+
+									Tokens.RemoveAt(TokenIndex);
+									Methods.Add(ident, new Token($"{{List:{tmp_Variable.returnType.ToString()}}}", tmp_Variable.Line, token_type.List, tmp_Variable.returnType, new token_type[0] { }, BuiltInMethods.ListHandler));
+									TokenIndex--;
+
+									continue;
+								}
+								else
+								{
+									throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text} : 잘못된 식별자입니다.");
+								}
+							}
+							else
+							{
+								throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text} : 잘못된 식별자입니다.");
+							}
+
+							Tokens.RemoveAt(TokenIndex);
+							switch (tmp_Variable.returnType)
+							{
+								case token_type.Int:
+									{
+										if (Tokens[TokenIndex].type == token_type.Assign)
+										{
+											Tokens.RemoveAt(TokenIndex);
+											if (Tokens[TokenIndex].returnType == token_type.Int || Tokens[TokenIndex].returnType == token_type.Float)
+											{
+												Variables.Add(ident, new Token(((int)double.Parse(Tokens[TokenIndex].text)).ToString(), tmp_Variable.Line, token_type.Var, tmp_Variable.returnType));
+												Tokens.RemoveAt(TokenIndex);
+											}
+											else
+											{
+												throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text} : 잘못된 자료형입니다.");
+											}
+										}
+										else
+										{
+											Variables.Add(ident, new Token("0", tmp_Variable.Line, token_type.Var, tmp_Variable.returnType));
+										}
+										break;
+									}
+								case token_type.Float:
+									{
+										if (Tokens[TokenIndex].type == token_type.Assign)
+										{
+											Tokens.RemoveAt(TokenIndex);
+											if (Tokens[TokenIndex].returnType == token_type.Int || Tokens[TokenIndex].returnType == token_type.Float)
+											{
+												Variables.Add(ident, new Token(double.Parse(Tokens[TokenIndex].text).ToString(), tmp_Variable.Line, token_type.Var, tmp_Variable.returnType));
+												Tokens.RemoveAt(TokenIndex);
+											}
+											else
+											{
+												throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text} : 잘못된 자료형입니다.");
+											}
+										}
+										else
+										{
+											Variables.Add(ident, new Token("0.0", tmp_Variable.Line, token_type.Var, tmp_Variable.returnType));
+										}
+										break;
+									}
+								case token_type.String:
+									{
+										if (Tokens[TokenIndex].type == token_type.Assign)
+										{
+											Tokens.RemoveAt(TokenIndex);
+											if (Tokens[TokenIndex].returnType == token_type.String)
+											{
+												Variables.Add(ident, new Token(Tokens[TokenIndex].text, tmp_Variable.Line, token_type.Var, tmp_Variable.returnType));
+												Tokens.RemoveAt(TokenIndex);
+											}
+											else
+											{
+												throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text} : 잘못된 자료형입니다.");
+											}
+										}
+										else
+										{
+											Variables.Add(ident, new Token("", tmp_Variable.Line, token_type.Var, tmp_Variable.returnType));
+										}
+										break;
+									}
+								case token_type.Flag:
+									{
+										Variables.Add(ident, new Token((TokenIndex - 1).ToString(), tmp_Variable.Line, token_type.Flag, token_type.Flag));
+										break;
+									}
+								default:
+									{
+										if (Tokens[TokenIndex].type != token_type.Null)
+											throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text} : 잘못된 구문 입니다.");
+										break;
+									}
+							}
+							TokenIndex--;
+							break;
+						}
 					//식별자
 					case token_type.Ident:
 						{
@@ -363,10 +341,11 @@ namespace DoMoolJung
 										{
 											if (Methods.TryGetValue(Tokens[TokenIndex].text, out Token tmp_Method2))
 											{
-												if (tmp_Method2.returnType == token_type.Int || tmp_Method2.returnType == token_type.Float)
+												Token tmp = Run(tmp_Method2);
+												if (tmp.returnType == token_type.Int || tmp.returnType == token_type.Float)
 												{
 													Variables.Remove(tokenName);
-													Variables.Add(tokenName, new Token(Run(tmp_Method2).text, tmp_Variable.Line, tmp_Variable.type, tmp_Variable.returnType));
+													Variables.Add(tokenName, new Token(tmp.text, tmp_Variable.Line, tmp_Variable.type, tmp_Variable.returnType));
 												}
 												else
 												{
@@ -432,10 +411,11 @@ namespace DoMoolJung
 										{
 											if (Methods.TryGetValue(Tokens[TokenIndex].text, out Token tmp_Method2))
 											{
-												if (tmp_Method2.returnType == token_type.Int || tmp_Method2.returnType == token_type.Float)
+												Token tmp = Run(tmp_Method2);
+												if (tmp.returnType == token_type.Int || tmp.returnType == token_type.Float)
 												{
 													Variables.Remove(tokenName);
-													Variables.Add(tokenName, new Token(Run(tmp_Method2).text, tmp_Variable.Line, tmp_Variable.type, tmp_Variable.returnType));
+													Variables.Add(tokenName, new Token(tmp.text, tmp_Variable.Line, tmp_Variable.type, tmp_Variable.returnType));
 												}
 												else
 												{
@@ -501,10 +481,11 @@ namespace DoMoolJung
 										{
 											if (Methods.TryGetValue(Tokens[TokenIndex].text, out Token tmp_Method2))
 											{
-												if (tmp_Method2.returnType == token_type.String)
+												Token tmp = Run(tmp_Method2);
+												if (tmp.returnType == token_type.String)
 												{
 													Variables.Remove(tokenName);
-													Variables.Add(tokenName, new Token(Run(tmp_Method2).text, tmp_Variable.Line, tmp_Variable.type, tmp_Variable.returnType));
+													Variables.Add(tokenName, new Token(tmp.text, tmp_Variable.Line, tmp_Variable.type, tmp_Variable.returnType));
 												}
 												else
 												{
