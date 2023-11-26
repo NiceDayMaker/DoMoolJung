@@ -32,6 +32,7 @@
 
   <ItemGroup>
     <None Remove="Fonts\D2Coding.ttf" />
+    <None Remove="README.txt" />
   </ItemGroup>
 
   <ItemGroup>
@@ -44,6 +45,9 @@
 
   <ItemGroup>
     <Resource Include="Fonts\D2Coding.ttf" />
+    <Resource Include="README.txt">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
   </ItemGroup>
 
 </Project>

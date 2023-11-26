@@ -17,7 +17,7 @@ namespace DoMoolJung
 		public static List<Token> Tokens = new();
 		public static Dictionary<string, Token> Methods = new();
 		public static Dictionary<string, Token> Variables = new();
-		public static readonly string[] UnUsableIdent = new string[37] { "색인", "크기", "초기화", "삭제", "추가", "실행한다", "파이썬", "변환", "기다리기", "지우기", "출력", "입력", "배열", "정수", "실수", "문자열", "깃발", "이동", "식", "논리", "더하기", "뺴기", "곱하기", "나누기", "나머지", "같다", "다르다", "크다", "작다", "면", "이면", "만약", "아니면", "한다", "은", "는", "주석" };
+		public static readonly string[] UnUsableIdent = new string[40] { "글색", "환경변수", "색인", "크기", "초기화", "삭제", "추가", "실행한다", "파이썬", "코드", "변환", "기다리기", "지우기", "출력", "입력", "배열", "정수", "실수", "문자열", "깃발", "이동", "식", "논리", "더하기", "뺴기", "곱하기", "나누기", "나머지", "같다", "다르다", "크다", "작다", "면", "이면", "만약", "아니면", "한다", "은", "는", "주석" };
 
 		Stopwatch watch = new Stopwatch();
 
@@ -35,7 +35,7 @@ namespace DoMoolJung
 			CompositionTarget.Rendering += new EventHandler(CompositionTarget_Rendering);
 		}
 
-		int fontSize = 100;
+		long fontSize = 100;
 		Stopwatch kc = Stopwatch.StartNew();
 		void CompositionTarget_Rendering(object sender, EventArgs e)
 		{
@@ -120,8 +120,8 @@ namespace DoMoolJung
 			{
 				await Task.Delay(10);
 				Liner.Text = "1";
-				int len = Source.Text.Split('\n').Length + 1;
-				for (int i = 2; i < len; i++)
+				long len = Source.Text.Split('\n').Length + 1;
+				for (long i = 2; i < len; i++)
 				{
 					Liner.Text += $"\n{i}";
 				}
@@ -150,19 +150,27 @@ namespace DoMoolJung
 
 				Thread.Sleep(100);
 
+				Console.BackgroundColor = ConsoleColor.Black;
+				Console.ForegroundColor = ConsoleColor.Cyan;
 				Console.WriteLine($"\n\n--------------------------------------------------\n{watch.Elapsed}에서 실행 완료됨");
+				Console.ForegroundColor = ConsoleColor.White;
 			}
 			catch (Exception ex)
 			{
 				Thread.Sleep(100);
 
+				Console.BackgroundColor = ConsoleColor.Black;
+				Console.ForegroundColor = ConsoleColor.Red;
 				if (compilerSuccess)
 					Console.WriteLine($"\n\n--------------------------------------------------\n{watch.Elapsed}에서 [{Tokens[TokenIndex].Line}] {ex.Message}");
 				else
 					Console.WriteLine($"\n\n--------------------------------------------------\n{ex.Message}");
+				Console.ForegroundColor = ConsoleColor.White;
+
 			}
 			finally
 			{
+				watch.Stop();
 				Compile.IsEnabled = true;
 				Source.IsEnabled = true;
 				Save.IsEnabled = true;
@@ -170,8 +178,11 @@ namespace DoMoolJung
 			}
 		}
 
+
+
 		private void Initialize()
 		{
+			BuiltInMethods.isInformDuplicateDeclar = true;
 			StopWithKeyInterrupt = false;
 
 			Methods.Clear();
@@ -184,15 +195,20 @@ namespace DoMoolJung
 			//Built-in methods
 			Methods.Add("출력", new Token("출력", -1, token_type.Method, token_type.Void, new token_type[1] { token_type.None }, BuiltInMethods.Print));
 			Methods.Add("입력", new Token("입력", -1, token_type.Method, token_type.String, new token_type[0] { }, BuiltInMethods.Input));
+			Methods.Add("글색", new Token("글색", -1, token_type.Method, token_type.String, new token_type[2] { token_type.Int, token_type.Int }, BuiltInMethods.ConsoleColor));
 			Methods.Add("이동", new Token("이동", -1, token_type.Method, token_type.Void, new token_type[1] { token_type.Flag }, BuiltInMethods.Goto));
 			Methods.Add("파이썬", new Token("파이썬", -1, token_type.Method, token_type.StringList, new token_type[0] { }, BuiltInMethods.PythonRunner));
 			Methods.Add("변환", new Token("변환", -1, token_type.Method, token_type.Var, new token_type[2] { token_type.None, token_type.None }, BuiltInMethods.Casting));
 			Methods.Add("기다리기", new Token("기다리기", -1, token_type.Method, token_type.Void, new token_type[1] { token_type.Int }, BuiltInMethods.Delay));
 			Methods.Add("지우기", new Token("지우기", -1, token_type.Method, token_type.Void, new token_type[0] { }, BuiltInMethods.Clear));
+			Methods.Add("환경변수", new Token("환경변수", -1, token_type.Method, token_type.Void, new token_type[2] { token_type.String, token_type.Int }, BuiltInMethods.EnvVar));
 		}
 
 		public static int TokenIndex;
+
 		public bool StopWithKeyInterrupt;
+
+		//인터프리터
 		public void Runner()
 		{
 			for (TokenIndex = 0; TokenIndex < Tokens.Count; TokenIndex++)
@@ -203,27 +219,55 @@ namespace DoMoolJung
 				}
 				switch (Tokens[TokenIndex].type)
 				{
+					//선언
 					case token_type.Declar:
 						{
 							Token tmp_Variable = Tokens[TokenIndex];
-							Tokens.RemoveAt(TokenIndex);
+							TokenIndex++;
 							string ident;
 							if (Tokens[TokenIndex].type == token_type.Ident)
 							{
 								ident = Tokens[TokenIndex].text;
-								if (UnUsableIdent.Contains(ident)) throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text}: 내장 구문은 식별자로 지정할 수 없습니다.");
-								if (Methods.ContainsKey(ident) || Variables.ContainsKey(ident)) throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text}: 이미 선언된 식별자입니다.");
+								if (UnUsableIdent.Contains(ident))
+									throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text}: 내장 구문은 식별자로 지정할 수 없습니다.");
+								if (Methods.ContainsKey(ident))
+									throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text}: 이미 함수로 선언된 식별자입니다. 함수는 재정의할 수 없습니다.");
+								if (Variables.ContainsKey(ident))
+								{
+									if (Variables[ident].returnType != tmp_Variable.returnType)
+										throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text}: 이미 <{Variables[ident].returnType}> 형 변수로 선언된 식별자입니다. <{tmp_Variable.returnType}> 형으로 재정의할 수 없습니다. 재정의는 같은 자료형으로만 가능합니다.");
+									Variables.Remove(ident);
+									if (BuiltInMethods.isInformDuplicateDeclar)
+									{
+										Console.ForegroundColor = ConsoleColor.Yellow;
+										Console.WriteLine($"\n{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text}: 경고) 이미 변수로 선언된 식별자입니다. [{ident}]이(가) 초기화 및 재정의됩니다. 이 경고를 표시하지 않으려면 코드에 [환경변수 \"중복선언경고\" 0]을 추가하십시오.");
+										Console.ForegroundColor = ConsoleColor.White;
+									}
+								}
 							}
 							else if (Tokens[TokenIndex].type == token_type.List)
 							{
-								Tokens.RemoveAt(TokenIndex);
+								TokenIndex++;
 								if (Tokens[TokenIndex].type == token_type.Ident)
 								{
 									ident = Tokens[TokenIndex].text;
-									if (UnUsableIdent.Contains(ident)) throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text}: 내장 구문은 식별자로 지정할 수 없습니다.");
-									if (Methods.ContainsKey(ident) || Variables.ContainsKey(ident)) throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text}: 이미 선언된 식별자입니다.");
-
-									Tokens.RemoveAt(TokenIndex);
+									if (UnUsableIdent.Contains(ident))
+										throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text}: 내장 구문은 식별자로 지정할 수 없습니다.");
+									if (Methods.ContainsKey(ident))
+										throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text}: 이미 함수로 선언된 식별자입니다. 함수는 재정의할 수 없습니다.");
+									if (Variables.ContainsKey(ident))
+									{
+										if (Variables[ident].returnType != tmp_Variable.returnType)
+											throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text}: 이미 <{Variables[ident].returnType}> 형 변수로 선언된 식별자입니다. <{tmp_Variable.returnType}> 형으로 재정의할 수 없습니다. 재정의는 같은 자료형으로만 가능합니다.");
+										Variables.Remove(ident);
+										if (BuiltInMethods.isInformDuplicateDeclar)
+										{
+											Console.ForegroundColor = ConsoleColor.Yellow;
+											Console.WriteLine($"\n{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text}: 경고) 이미 변수로 선언된 식별자입니다. [{ident}]이(가) 초기화 및 재정의됩니다. 이 경고를 표시하지 않으려면 코드에 [환경변수 \"중복선언경고\" 0]을 추가하십시오.");
+											Console.ForegroundColor = ConsoleColor.White;
+										}
+									}
+									TokenIndex++;
 									Methods.Add(ident, new Token($"{{List:{tmp_Variable.returnType.ToString()}}}", tmp_Variable.Line, token_type.List, tmp_Variable.returnType, new token_type[0] { }, BuiltInMethods.ListHandler));
 									TokenIndex--;
 
@@ -239,18 +283,18 @@ namespace DoMoolJung
 								throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text} : 잘못된 식별자입니다.");
 							}
 
-							Tokens.RemoveAt(TokenIndex);
+							TokenIndex++;
 							switch (tmp_Variable.returnType)
 							{
 								case token_type.Int:
 									{
 										if (Tokens[TokenIndex].type == token_type.Assign)
 										{
-											Tokens.RemoveAt(TokenIndex);
+											TokenIndex++;
 											if (Tokens[TokenIndex].returnType == token_type.Int || Tokens[TokenIndex].returnType == token_type.Float)
 											{
-												Variables.Add(ident, new Token(((int)double.Parse(Tokens[TokenIndex].text)).ToString(), tmp_Variable.Line, token_type.Var, tmp_Variable.returnType));
-												Tokens.RemoveAt(TokenIndex);
+												Variables.Add(ident, new Token(((long)double.Parse(Tokens[TokenIndex].text)).ToString(), tmp_Variable.Line, token_type.Var, tmp_Variable.returnType));
+												TokenIndex++;
 											}
 											else
 											{
@@ -267,11 +311,11 @@ namespace DoMoolJung
 									{
 										if (Tokens[TokenIndex].type == token_type.Assign)
 										{
-											Tokens.RemoveAt(TokenIndex);
+											TokenIndex++;
 											if (Tokens[TokenIndex].returnType == token_type.Int || Tokens[TokenIndex].returnType == token_type.Float)
 											{
 												Variables.Add(ident, new Token(double.Parse(Tokens[TokenIndex].text).ToString(), tmp_Variable.Line, token_type.Var, tmp_Variable.returnType));
-												Tokens.RemoveAt(TokenIndex);
+												TokenIndex++;
 											}
 											else
 											{
@@ -288,11 +332,11 @@ namespace DoMoolJung
 									{
 										if (Tokens[TokenIndex].type == token_type.Assign)
 										{
-											Tokens.RemoveAt(TokenIndex);
+											TokenIndex++;
 											if (Tokens[TokenIndex].returnType == token_type.String)
 											{
 												Variables.Add(ident, new Token(Tokens[TokenIndex].text, tmp_Variable.Line, token_type.Var, tmp_Variable.returnType));
-												Tokens.RemoveAt(TokenIndex);
+												TokenIndex++;
 											}
 											else
 											{
@@ -305,11 +349,6 @@ namespace DoMoolJung
 										}
 										break;
 									}
-								case token_type.Flag:
-									{
-										Variables.Add(ident, new Token((TokenIndex - 1).ToString(), tmp_Variable.Line, token_type.Flag, token_type.Flag));
-										break;
-									}
 								default:
 									{
 										if (Tokens[TokenIndex].type != token_type.Null)
@@ -320,7 +359,7 @@ namespace DoMoolJung
 							TokenIndex--;
 							break;
 						}
-					//식별자
+					//호출
 					case token_type.Ident:
 						{
 							//함수
@@ -357,7 +396,7 @@ namespace DoMoolJung
 												if (tmp_Variable2.returnType == token_type.Int || tmp_Variable2.returnType == token_type.Float)
 												{
 													Variables.Remove(tokenName);
-													Variables.Add(tokenName, new Token(((int)double.Parse(tmp_Variable2.text)).ToString(), tmp_Variable.Line, tmp_Variable.type, tmp_Variable.returnType));
+													Variables.Add(tokenName, new Token(((long)double.Parse(tmp_Variable2.text)).ToString(), tmp_Variable.Line, tmp_Variable.type, tmp_Variable.returnType));
 												}
 												else
 												{
@@ -374,7 +413,7 @@ namespace DoMoolJung
 											if (Tokens[TokenIndex].returnType == token_type.Int || Tokens[TokenIndex].returnType == token_type.Float)
 											{
 												Variables.Remove(tokenName);
-												Variables.Add(tokenName, new Token(((int)double.Parse(Tokens[TokenIndex].text)).ToString(), tmp_Variable.Line, tmp_Variable.type, tmp_Variable.returnType));
+												Variables.Add(tokenName, new Token(((long)double.Parse(Tokens[TokenIndex].text)).ToString(), tmp_Variable.Line, tmp_Variable.type, tmp_Variable.returnType));
 											}
 											else
 											{
@@ -556,7 +595,7 @@ namespace DoMoolJung
 							}
 							break;
 						}
-					//만약
+					//조건문
 					case token_type.If:
 						{
 							TokenIndex++;
@@ -566,9 +605,9 @@ namespace DoMoolJung
 
 								if (res.type == token_type.Null || (res.returnType != token_type.Int && res.returnType != token_type.Float)) throw new Exception($" {Tokens[TokenIndex].text}: 잘못된 자료형입니다.");
 								if (Tokens[++TokenIndex].type != token_type.Brack_end) throw new Exception($" {Tokens[TokenIndex].text}: 조건문이 정상적으로 닫히지 않았습니다.");
-								if (float.Parse(res.text) < 0.5f)
+								if (Math.Abs(double.Parse(res.text)) < 0.0000000000000001)
 								{
-									int cnt = 1;
+									long cnt = 1;
 									while (cnt > 0)
 									{
 										switch (Tokens[TokenIndex++].type)
@@ -588,6 +627,10 @@ namespace DoMoolJung
 													cnt--;
 													break;
 												}
+											case token_type.Null:
+												{
+													throw new Exception($" {Tokens[TokenIndex].text}: 조건문이 정상적으로 닫히지 않았습니다.");
+												}
 										}
 									}
 									if (Tokens[TokenIndex].type != token_type.Else)
@@ -603,9 +646,9 @@ namespace DoMoolJung
 								if (res.type == token_type.Null || (res.returnType != token_type.Int && res.returnType != token_type.Float)) throw new Exception($" {Tokens[TokenIndex].text}: 잘못된 자료형입니다.");
 								if (Tokens[++TokenIndex].type != token_type.Brack_end) throw new Exception($" {Tokens[TokenIndex].text}: 조건문이 정상적으로 닫히지 않았습니다.");
 
-								if (float.Parse(res.text) < 0.5f)
+								if (Math.Abs(double.Parse(res.text)) < 0.0000000000000001)
 								{
-									int cnt = 1;
+									long cnt = 1;
 									while (cnt > 0)
 									{
 										switch (Tokens[TokenIndex++].type)
@@ -615,10 +658,19 @@ namespace DoMoolJung
 													cnt++;
 													break;
 												}
+											case token_type.Else:
+												{
+													cnt++;
+													break;
+												}
 											case token_type.Block_end:
 												{
 													cnt--;
 													break;
+												}
+											case token_type.Null:
+												{
+													throw new Exception($" {Tokens[TokenIndex].text}: 조건문이 정상적으로 닫히지 않았습니다.");
 												}
 										}
 									}
@@ -635,9 +687,9 @@ namespace DoMoolJung
 									tmp_Method2 = Run(tmp_Method2);
 									if (tmp_Method2.returnType == token_type.Int || tmp_Method2.returnType == token_type.Float)
 									{
-										if (float.Parse(tmp_Method2.text) < 0.5f)
+										if (Math.Abs(double.Parse(tmp_Method2.text)) < 0.0000000000000001)
 										{
-											int cnt = 1;
+											long cnt = 1;
 											while (cnt > 0)
 											{
 												switch (Tokens[TokenIndex++].type)
@@ -647,10 +699,19 @@ namespace DoMoolJung
 															cnt++;
 															break;
 														}
+													case token_type.Else:
+														{
+															cnt++;
+															break;
+														}
 													case token_type.Block_end:
 														{
 															cnt--;
 															break;
+														}
+													case token_type.Null:
+														{
+															throw new Exception($" {Tokens[TokenIndex].text}: 조건문이 정상적으로 닫히지 않았습니다.");
 														}
 												}
 											}
@@ -669,9 +730,9 @@ namespace DoMoolJung
 								{
 									if (tmp_Variable2.returnType == token_type.Int || tmp_Variable2.returnType == token_type.Float)
 									{
-										if (float.Parse(tmp_Variable2.text) < 0.5f)
+										if (Math.Abs(double.Parse(tmp_Variable2.text)) < 0.0000000000000001)
 										{
-											int cnt = 1;
+											long cnt = 1;
 											while (cnt > 0)
 											{
 												switch (Tokens[TokenIndex++].type)
@@ -681,10 +742,19 @@ namespace DoMoolJung
 															cnt++;
 															break;
 														}
+													case token_type.Else:
+														{
+															cnt++;
+															break;
+														}
 													case token_type.Block_end:
 														{
 															cnt--;
 															break;
+														}
+													case token_type.Null:
+														{
+															throw new Exception($" {Tokens[TokenIndex].text}: 조건문이 정상적으로 닫히지 않았습니다.");
 														}
 												}
 											}
@@ -706,12 +776,12 @@ namespace DoMoolJung
 							}
 							else
 							{
-								if (float.TryParse(Tokens[TokenIndex].text, out float b))
+								if (double.TryParse(Tokens[TokenIndex].text, out double b))
 								{
 									if (Tokens[++TokenIndex].type != token_type.Brack_end) throw new Exception($" {Tokens[TokenIndex].text}: 조건문이 정상적으로 닫히지 않았습니다.");
-									if (b < 0.5f)
+									if (Math.Abs(b) < 0.0000000000000001f)
 									{
-										int cnt = 1;
+										long cnt = 1;
 										while (cnt > 0)
 										{
 											switch (Tokens[TokenIndex++].type)
@@ -721,10 +791,19 @@ namespace DoMoolJung
 														cnt++;
 														break;
 													}
+												case token_type.Else:
+													{
+														cnt++;
+														break;
+													}
 												case token_type.Block_end:
 													{
 														cnt--;
 														break;
+													}
+												case token_type.Null:
+													{
+														throw new Exception($" {Tokens[TokenIndex].text}: 조건문이 정상적으로 닫히지 않았습니다.");
 													}
 											}
 										}
@@ -743,12 +822,39 @@ namespace DoMoolJung
 						}
 					case token_type.Else:
 						{
-							while (Tokens[TokenIndex].type != token_type.Block_end) TokenIndex++;
+							Debug.WriteLine("");
+							long cnt = 1;
+							while (cnt > 0)
+							{
+								switch (Tokens[++TokenIndex].type)
+								{
+									case token_type.If:
+										{
+											cnt++;
+											break;
+										}
+									case token_type.Else:
+										{
+											cnt++;
+											break;
+										}
+									case token_type.Block_end:
+										{
+											cnt--;
+											break;
+										}
+									case token_type.Null:
+										{
+											throw new Exception($" {Tokens[TokenIndex].text}: 조건문이 정상적으로 닫히지 않았습니다.");
+										}
+								}
+							}
 							break;
 						}
+					//예외
 					default:
 						{
-							if (Tokens[TokenIndex].type != token_type.Null && Tokens[TokenIndex].type != token_type.Block_end)
+							if (Tokens[TokenIndex].type != token_type.Null && Tokens[TokenIndex].type != token_type.Block_end && Tokens[TokenIndex].type != token_type.Flag)
 								throw new Exception($"{Tokens[TokenIndex].type} {Tokens[TokenIndex].returnType} {Tokens[TokenIndex].text} : 잘못된 구문 입니다.");
 							break;
 						}
@@ -756,11 +862,12 @@ namespace DoMoolJung
 			}
 		}
 
+		//함수 실행
 		public static Token Run(Token tmp_Method)
 		{
 			tmp_Method.args.Clear();
 			TokenIndex++;
-			for (int j = 0; j < tmp_Method.argTypes.Length; j++, TokenIndex++)
+			for (long j = 0; j < tmp_Method.argTypes.Length; j++, TokenIndex++)
 			{
 				if (Tokens[TokenIndex].type == token_type.Formula)
 				{
@@ -805,6 +912,7 @@ namespace DoMoolJung
 			return tmp_Method.Run();
 		}
 
+		//전처리기
 		void Compiler()
 		{
 			Index = 0;
@@ -814,29 +922,31 @@ namespace DoMoolJung
 			while (c != '\0')
 			{
 				string tok = ""; //토큰 문자열
+								 //줄바꿈 건너뛰기
 				if (c == '\n')
 				{
 					c = getChar();
 					Line++;
 				}
+				//공백 건너뛰기
 				else if (c == '\r' || c == ' ' || c == '\t')
 				{
 					c = getChar();
 				}
-				//식별자
+				//예약어
 				else if (c.isKorean() || c == '_')
 				{
 					tok += c;
 					while (c != '\n' && c != '\0')
 					{
 						c = getChar();
-						if (!(c.isKorean() || " _1234567890\n\0\r".Contains(c)))
+						if (!(c.isKorean() || " _1234567890\n\0\r\t".Contains(c)))
 						{
 							tok += c;
 							throw new Exception($"[{Line}] {tok} {c} : 잘못된 문자");
 						}
 
-						if (c == ' ' || c == '\n' || c == '\0' || c == '\r')
+						if (c == ' ' || c == '\n' || c == '\0' || c == '\r' || c == '\t')
 						{
 							switch (tok)
 							{
@@ -912,7 +1022,7 @@ namespace DoMoolJung
 												Tokens.Add(new Token(pycode[..^4], Line, token_type.Code, token_type.Void));
 												break;
 											}
-											if (pycode[^1] == '\0') throw new Exception($"{pycode}\n--------------------------------------------------\n[{Line}] 파이썬 구문이 정상적으로 닫히지 않았습니다. 코드 끝에 '실행한다' 또는 '실행한 후' 명령어를 추가하십시오.");
+											if (pycode[^1] == '\0') throw new Exception($"{pycode}\n--------------------------------------------------\n[{Line}] 파이썬 구문이 정상적으로 닫히지 않았습니다. 코드 끝에 '실행한다' 명령어를 추가하십시오.");
 											if (pycode.Contains("input(")) throw new Exception($"[{Line}] 두물정 파이썬에서는 콘솔 입력의 사용이 불가합니다. 대신 파이썬 전달 인자로 '입력' 함수를 사용하십시오.");
 										}
 										while (pycode[^1] != '\0');
@@ -921,7 +1031,22 @@ namespace DoMoolJung
 									}
 								case "깃발":
 									{
-										Tokens.Add(new Token("", Line, token_type.Declar, token_type.Flag));
+										for (; (!c.isKorean()); c = getChar())
+										{
+											if (c == '\0') throw new Exception($"[{Line}] 깃발 이름이 누락되었습니다.");
+											if (c == '\n')
+											{
+												Line++;
+											}
+										}
+										string tmp = "";
+										for (; !"\0\t\r\n ".Contains(c); c = getChar())
+										{
+											if (!c.isKorean()) throw new Exception($"[{Line}] {tmp} {c} : 잘못된 문자입니다.");
+											tmp += c;
+										}
+										if (Variables.ContainsKey(tmp)) throw new Exception($"[{Line}] {tmp} : 이미 깃발로 선언된 식별자입니다. 깃발은 재정의할 수 없습니다.");
+										Variables.Add(tmp, new Token((Tokens.Count - 1).ToString(), Line, token_type.Flag, token_type.Flag));
 										break;
 									}
 								case "은":
@@ -1028,7 +1153,7 @@ namespace DoMoolJung
 						}
 					}
 				}
-				//문자
+				//문자열
 				else if (c == '\"')
 				{
 					string tmp = "";
@@ -1104,7 +1229,7 @@ namespace DoMoolJung
 							}
 							else
 							{
-								if (int.TryParse(tok, out int result))
+								if (long.TryParse(tok, out long result))
 								{
 									Tokens.Add(new Token(tok, Line, token_type.Var, token_type.Int));
 									break;
@@ -1132,6 +1257,10 @@ namespace DoMoolJung
 			Tokens.Add(new Token("", Line, token_type.Null, token_type.Null));
 			Tokens.Add(new Token("", Line, token_type.Null, token_type.Null));
 			Tokens.Add(new Token("", Line, token_type.Null, token_type.Null));
+			Tokens.Add(new Token("", Line, token_type.Null, token_type.Null));
+			Tokens.Add(new Token("", Line, token_type.Null, token_type.Null));
+			Tokens.Add(new Token("", Line, token_type.Null, token_type.Null));
+			Tokens.Add(new Token("", Line, token_type.Null, token_type.Null));
 		}
 
 		int Index;
@@ -1139,20 +1268,23 @@ namespace DoMoolJung
 		char c;
 		char getChar()
 		{
+			Console.ForegroundColor = ConsoleColor.Green;
 			if (Index >= Source.Text.Length)
 			{
 				Console.SetCursorPosition(0, 0);
 				Console.WriteLine($"주의) 콘솔창을 닫지 마시오\n[##################################################] = 100.000000%\n--------------------------------------------------\n\n");
+				Console.ForegroundColor = ConsoleColor.White;
 				return '\0';
 			}
 			string bar = "[";
-			for (int i = 0; i < 50; i++)
+			for (long i = 0; i < 50; i++)
 			{
 				bar += ((float)Index / Source.Text.Length) * 50 > i ? '#' : '-';
 			}
 			Console.SetCursorPosition(0, 0);
 			Console.WriteLine($"주의) 콘솔창을 닫지 마시오\n{bar}] = {((float)Index / Source.Text.Length) * 100f}%   ");
 			Debug.Write(Source.Text[Index]);
+			Console.ForegroundColor = ConsoleColor.White;
 			return Source.Text[Index++];
 		}
 

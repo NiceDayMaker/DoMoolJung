@@ -9,6 +9,7 @@ namespace DoMoolJung
 {
 	public static class BuiltInMethods
 	{
+		//출력
 		public static Token Print(Token[] tokens)
 		{
 			if (tokens[0].returnType == token_type.Float)
@@ -22,18 +23,382 @@ namespace DoMoolJung
 			return new Token("", -1, token_type.Void, token_type.None);
 		}
 
+		public static Token ConsoleColor(Token[] tokens)
+		{
+			if (int.TryParse(tokens[0].text, out int fc))
+			{
+				if (fc < 0 || fc > 15)
+				{
+					throw new Exception($"{tokens[0].text} : 잘못된 색코드입니다. 색코드는 0~15입니다. 자세한 내용은 도움말을 참고하십시오.");
+				}
+			}
+			else
+			{
+				throw new Exception($"{tokens[0].text} : 잘못된 색코드입니다. 색코드는 0~15입니다. 자세한 내용은 도움말을 참고하십시오.");
+			}
+			if (int.TryParse(tokens[1].text, out int bc))
+			{
+				if (bc < 0 || bc > 15)
+				{
+					throw new Exception($"{tokens[1].text} : 잘못된 색코드입니다. 색코드는 0~15입니다. 자세한 내용은 도움말을 참고하십시오.");
+				}
+			}
+			else
+			{
+				throw new Exception($"{tokens[1].text} : 잘못된 색코드입니다. 색코드는 0~15입니다. 자세한 내용은 도움말을 참고하십시오.");
+			}
+
+			Console.ForegroundColor = (System.ConsoleColor)fc;
+			Console.BackgroundColor = (System.ConsoleColor)bc;
+			return new Token("", -1, token_type.Void, token_type.None);
+		}
+
+		//입력
 		public static Token Input(Token[] tokens)
 		{
 			return new Token(Console.ReadLine(), -1, token_type.Var, token_type.String);
 		}
 
+		//지우기
 		public static Token Clear(Token[] tokens)
 		{
+			Console.BackgroundColor = System.ConsoleColor.Black;
+			Console.ForegroundColor = System.ConsoleColor.White;
 			Console.Clear();
-			Console.WriteLine($"주의) 콘솔창을 닫지 마시오\n[##################################################] = 100.000000%\n--------------------------------------------------\n\n");
 			return new Token("", -1, token_type.Void, token_type.None);
 		}
 
+		//자료형 변환
+		public static Token Casting(Token[] tokens)
+		{
+			if (tokens[1].type != token_type.Declar) throw new Exception($"[{tokens[1].Line}] {tokens[1].type} {tokens[1].returnType} {tokens[1].text} : 잘못된 자료형입니다.");
+			switch (tokens[1].returnType)
+			{
+				case token_type.Int:
+					{
+						if (double.TryParse(tokens[0].text, out double a))
+						{
+							return new Token(((long)a).ToString(), -1, token_type.Var, tokens[1].returnType);
+						}
+						else
+						{
+							throw new Exception($"[{tokens[0].Line}] {tokens[0].type} {tokens[0].returnType} {tokens[0].text} : 정수형으로 변환할 수 없습니다.");
+						}
+					}
+				case token_type.Float:
+					{
+						if (double.TryParse(tokens[0].text, out double a))
+						{
+							return new Token(a.ToString(), -1, token_type.Var, tokens[1].returnType);
+						}
+						else
+						{
+							throw new Exception($"[{tokens[0].Line}] {tokens[0].type} {tokens[0].returnType} {tokens[0].text} : 실수형으로 변환할 수 없습니다.");
+						}
+					}
+				case token_type.String:
+					{
+						return new Token(tokens[0].text, -1, token_type.Var, tokens[1].returnType);
+					}
+				default:
+					{
+						throw new Exception($"[{tokens[1].Line}] {tokens[1].type} {tokens[1].returnType} {tokens[1].text} : 잘못된 자료형입니다.");
+					}
+			}
+		}
+
+		//기다리기
+		public static Token Delay(Token[] tokens)
+		{
+			if (long.Parse(tokens[0].text) < 0) throw new Exception($"[{tokens[0].Line}] {tokens[0].text} : 0보다 작은 시간을 지연시킬 수 없습니다.");
+			Thread.Sleep(int.Parse(tokens[0].text));
+			return new Token("", -1, token_type.Void, token_type.None);
+		}
+
+		//이동
+		public static Token Goto(Token[] tokens)
+		{
+			MainWindow.TokenIndex = int.Parse(tokens[0].text);
+			return new Token();
+		}
+
+		//----------환경변수----------
+
+		public static bool isInformDuplicateDeclar;
+
+		//----------환경변수----------
+
+		public static Token EnvVar(Token[] tokens)
+		{
+			switch (tokens[0].text)
+			{
+				case "중복선언경고":
+					{
+						isInformDuplicateDeclar = tokens[1].text != "0";
+						break;
+					}
+				default:
+					{
+						throw new Exception($"[{tokens[0].Line}] {tokens[0].text} : 존재하지 않는 환경변수입니다.");
+					}
+			}
+			return new Token();
+		}
+
+		public static Token PythonRunner(Token[] tokens)
+		{
+			List<Token> tmpArgs = new();
+			MainWindow.TokenIndex++;
+			for (; MainWindow.Tokens[MainWindow.TokenIndex].type != token_type.Code; MainWindow.TokenIndex++)
+			{
+				if (MainWindow.Tokens[MainWindow.TokenIndex].type == token_type.Var)
+				{
+					tmpArgs.Add(MainWindow.Tokens[MainWindow.TokenIndex]);
+				}
+				else if (MainWindow.Tokens[MainWindow.TokenIndex].type == token_type.Formula)
+				{
+					tmpArgs.Add(Calc(true));
+				}
+				else if (MainWindow.Tokens[MainWindow.TokenIndex].type == token_type.Equation)
+				{
+					tmpArgs.Add(Calc(false));
+				}
+				else if (MainWindow.Tokens[MainWindow.TokenIndex].type == token_type.Ident)
+				{
+					if (MainWindow.Methods.TryGetValue(MainWindow.Tokens[MainWindow.TokenIndex].text, out Token arg_Method))
+					{
+						if (arg_Method.returnType != token_type.Int && arg_Method.returnType != token_type.Float && arg_Method.returnType != token_type.String) throw new Exception($"{MainWindow.Tokens[MainWindow.TokenIndex].type} {MainWindow.Tokens[MainWindow.TokenIndex].returnType} {MainWindow.Tokens[MainWindow.TokenIndex].text}: 잘못된 자료형입니다.");
+						Token res2 = MainWindow.Run(arg_Method);
+						if (res2.type != token_type.Var) throw new Exception($"{MainWindow.Tokens[MainWindow.TokenIndex].type} {MainWindow.Tokens[MainWindow.TokenIndex].returnType} {MainWindow.Tokens[MainWindow.TokenIndex].text}: 잘못된 자료형입니다.");
+						tmpArgs.Add(res2);
+					}
+					else if (MainWindow.Variables.TryGetValue(MainWindow.Tokens[MainWindow.TokenIndex].text, out Token tmp_Variable))
+					{
+						if (tmp_Variable.type != token_type.Var) throw new Exception($"{MainWindow.Tokens[MainWindow.TokenIndex].type} {MainWindow.Tokens[MainWindow.TokenIndex].returnType} {MainWindow.Tokens[MainWindow.TokenIndex].text}: 잘못된 자료형입니다.");
+						tmpArgs.Add(tmp_Variable);
+					}
+					else
+					{
+						throw new Exception($"{MainWindow.Tokens[MainWindow.TokenIndex].type} {MainWindow.Tokens[MainWindow.TokenIndex].returnType} {MainWindow.Tokens[MainWindow.TokenIndex].text} : 잘못된 식별자입니다.");
+					}
+				}
+				else
+				{
+					throw new Exception($"{MainWindow.Tokens[MainWindow.TokenIndex].type} {MainWindow.Tokens[MainWindow.TokenIndex].returnType} {MainWindow.Tokens[MainWindow.TokenIndex].text} : 잘못된 식별자입니다.");
+				}
+			}
+
+			Token code = MainWindow.Tokens[MainWindow.TokenIndex];
+			string pycode = "args = list()\n";
+			for (int i = 0; i < tmpArgs.Count; i++)
+			{
+				switch (tmpArgs[i].returnType)
+				{
+					case token_type.Int:
+						{
+							pycode += $"args.append(int(\"{tmpArgs[i].text}\"))\n";
+							break;
+						}
+					case token_type.Float:
+						{
+							pycode += $"args.append(float(\"{tmpArgs[i].text}\"))\n";
+							break;
+						}
+					case token_type.String:
+						{
+							pycode += $"args.append(\"{tmpArgs[i].text}\")\n";
+							break;
+						}
+					default:
+						{
+							throw new Exception($"{tmpArgs[i].type} {tmpArgs[i].returnType} {tmpArgs[i].text} : 잘못된 자료형입니다.");
+						}
+				}
+			}
+			pycode += code.text;
+
+			DirectoryInfo di = new DirectoryInfo($"{Path.GetTempPath()}DoMoolJung");
+			if (!di.Exists)
+				di.Create();
+			string FileName = $"{Path.GetTempPath()}DoMoolJung\\{Path.GetRandomFileName()}";
+
+			using (var sw = new StreamWriter(File.Create(FileName)))
+			{
+				sw.Write($"{pycode}");
+			}
+
+			Token res = new Token($"{{List:String}}", MainWindow.Tokens[MainWindow.TokenIndex].Line, token_type.List, token_type.String, new token_type[0] { }, ListHandler);
+			Process pro = new Process();
+
+			pro.StartInfo.FileName = "python";
+			pro.StartInfo.Arguments = FileName;
+			pro.StartInfo.CreateNoWindow = true;
+			pro.StartInfo.UseShellExecute = false;
+			pro.StartInfo.RedirectStandardOutput = true;
+			pro.StartInfo.RedirectStandardError = true;
+			pro.OutputDataReceived += (object sender, DataReceivedEventArgs outLine) =>
+			{
+				if (outLine.Data == null)
+				{
+					return;
+				}
+				else if (outLine.Data.StartsWith("echo "))
+				{
+					res.datas.Add(new Token(outLine.Data[5..], MainWindow.Tokens[MainWindow.TokenIndex].Line, token_type.Var, token_type.String));
+				}
+				else
+				{
+					Console.WriteLine(outLine.Data);
+				}
+			};
+
+			try
+			{
+				pro.Start();
+				pro.BeginOutputReadLine();
+			}
+			catch
+			{
+				throw new Exception($"{MainWindow.Tokens[MainWindow.TokenIndex].type} {MainWindow.Tokens[MainWindow.TokenIndex].returnType} {MainWindow.Tokens[MainWindow.TokenIndex].text} : 기기에 설치된 파이썬을 찾을 수 없습니다. 파이썬을 설치한 후 환경변수에 등록해 주십시오.");
+			}
+
+			string err = pro.StandardError.ReadToEnd();
+			if (err != "")
+			{
+				throw new Exception($"{MainWindow.Tokens[MainWindow.TokenIndex].type} {MainWindow.Tokens[MainWindow.TokenIndex].returnType} {MainWindow.Tokens[MainWindow.TokenIndex].text} : \n\n{err}");
+			}
+
+			if (File.Exists(pycode))
+				File.Delete(FileName);
+			return res;
+		}
+
+
+		//연산 및 판단
+		public static Token Calc(bool isFormula)
+		{
+			Token a;
+			Token b;
+			Token op;
+			Token tmp;
+
+			if (isFormula)
+			{
+				a = MainWindow.Tokens[++MainWindow.TokenIndex];
+				if (a.type == token_type.Ident)
+				{
+					if (MainWindow.Variables.TryGetValue(a.text, out tmp))
+						a = tmp;
+					else if (MainWindow.Methods.TryGetValue(a.text, out tmp))
+						a = MainWindow.Run(tmp);
+					else
+						throw new Exception($"[{a.Line}] {a.text}: 잘못된 식별자입니다.");
+				}
+				else if (a.type == token_type.Equation)
+				{
+					a = Calc(false);
+				}
+				else if (a.type == token_type.Formula)
+				{
+					a = Calc(true);
+				}
+
+				MainWindow.TokenIndex++;
+
+				b = MainWindow.Tokens[++MainWindow.TokenIndex];
+				if (b.type == token_type.Ident)
+				{
+					if (MainWindow.Variables.TryGetValue(b.text, out tmp))
+						b = tmp;
+					else if (MainWindow.Methods.TryGetValue(b.text, out tmp))
+						b = MainWindow.Run(tmp);
+					else
+						throw new Exception($"[{b.Line}] {b.text}: 잘못된 식별자입니다.");
+				}
+				else if (b.type == token_type.Equation)
+				{
+					b = Calc(false);
+				}
+				else if (b.type == token_type.Formula)
+				{
+					b = Calc(true);
+				}
+
+				MainWindow.TokenIndex++;
+
+				op = MainWindow.Tokens[++MainWindow.TokenIndex];
+				if (op.type != token_type.Operator) throw new Exception($"[{op.Line}]  {op.text}: 잘못된 연산자입니다.");
+			}
+			else
+			{
+				a = MainWindow.Tokens[++MainWindow.TokenIndex];
+				if (a.type == token_type.Ident)
+				{
+					if (MainWindow.Variables.TryGetValue(a.text, out tmp))
+						a = tmp;
+					else if (MainWindow.Methods.TryGetValue(a.text, out tmp))
+						a = MainWindow.Run(tmp);
+					else
+						throw new Exception($"[{a.Line}] {a.text}: 잘못된 식별자입니다.");
+				}
+				else if (a.type == token_type.Equation)
+				{
+					a = Calc(false);
+				}
+				else if (a.type == token_type.Formula)
+				{
+					a = Calc(true);
+				}
+
+				op = MainWindow.Tokens[++MainWindow.TokenIndex];
+				if (op.type != token_type.Operator) throw new Exception($"[{op.Line}]  {op.text}: 잘못된 연산자입니다.");
+
+				b = MainWindow.Tokens[++MainWindow.TokenIndex];
+				if (b.type == token_type.Ident)
+				{
+					if (MainWindow.Variables.TryGetValue(b.text, out tmp))
+						b = tmp;
+					else if (MainWindow.Methods.TryGetValue(b.text, out tmp))
+						b = MainWindow.Run(tmp);
+					else
+						throw new Exception($"[{b.Line}] {b.text}: 잘못된 식별자입니다.");
+				}
+				else if (b.type == token_type.Equation)
+				{
+					b = Calc(false);
+				}
+				else if (b.type == token_type.Formula)
+				{
+					b = Calc(true);
+				}
+			}
+
+			switch (op.returnType)
+			{
+				case token_type.Plus:
+					return a + b;
+				case token_type.Minus:
+					return a - b;
+				case token_type.Multi:
+					return a * b;
+				case token_type.Divi:
+					return a / b;
+				case token_type.Modulo:
+					return a % b;
+				case token_type.Equal:
+					return a == b;
+				case token_type.Not_Equal:
+					return a != b;
+				case token_type.Greater:
+					return a > b;
+				case token_type.Less:
+					return a < b;
+				default:
+					return new Token("", a.Line, token_type.Null, token_type.Null);
+			}
+		}
+
+		//배열
 		public static Token ListHandler(Token[] tokens)
 		{
 			string thisList = MainWindow.Tokens[MainWindow.TokenIndex++].text;
@@ -414,331 +779,12 @@ namespace DoMoolJung
 			}
 		}
 
-		public static Token Casting(Token[] tokens)
-		{
-			if (tokens[1].type != token_type.Declar) throw new Exception($"[{tokens[1].Line}] {tokens[1].type} {tokens[1].returnType} {tokens[1].text} : 잘못된 자료형입니다.");
-			switch (tokens[1].returnType)
-			{
-				case token_type.Int:
-					{
-						if (double.TryParse(tokens[0].text, out double a))
-						{
-							return new Token(((int)a).ToString(), -1, token_type.Var, tokens[1].returnType);
-						}
-						else
-						{
-							throw new Exception($"[{tokens[0].Line}] {tokens[0].type} {tokens[0].returnType} {tokens[0].text} : 정수형으로 변환할 수 없습니다.");
-						}
-					}
-				case token_type.Float:
-					{
-						if (double.TryParse(tokens[0].text, out double a))
-						{
-							return new Token(a.ToString(), -1, token_type.Var, tokens[1].returnType);
-						}
-						else
-						{
-							throw new Exception($"[{tokens[0].Line}] {tokens[0].type} {tokens[0].returnType} {tokens[0].text} : 실수형으로 변환할 수 없습니다.");
-						}
-					}
-				case token_type.String:
-					{
-						return new Token(tokens[0].text, -1, token_type.Var, tokens[1].returnType);
-					}
-				default:
-					{
-						throw new Exception($"[{tokens[1].Line}] {tokens[1].type} {tokens[1].returnType} {tokens[1].text} : 잘못된 자료형입니다.");
-					}
-			}
-		}
-
-		public static Token Delay(Token[] tokens)
-		{
-			if (int.Parse(tokens[0].text) < 0) throw new Exception($"[{tokens[0].Line}] {tokens[0].text} : 0보다 작은 시간을 지연시킬 수 없습니다.");
-			Thread.Sleep(int.Parse(tokens[0].text));
-			return new Token("", -1, token_type.Void, token_type.None);
-		}
-
-		public static Token Goto(Token[] tokens)
-		{
-			MainWindow.TokenIndex = int.Parse(tokens[0].text);
-			return new Token();
-		}
-
-		public static Token PythonRunner(Token[] tokens)
-		{
-			List<Token> tmpArgs = new();
-			MainWindow.TokenIndex++;
-			for (; MainWindow.Tokens[MainWindow.TokenIndex].type != token_type.Code; MainWindow.TokenIndex++)
-			{
-				if (MainWindow.Tokens[MainWindow.TokenIndex].type == token_type.Var)
-				{
-					tmpArgs.Add(MainWindow.Tokens[MainWindow.TokenIndex]);
-				}
-				else if (MainWindow.Tokens[MainWindow.TokenIndex].type == token_type.Formula)
-				{
-					tmpArgs.Add(Calc(true));
-				}
-				else if (MainWindow.Tokens[MainWindow.TokenIndex].type == token_type.Equation)
-				{
-					tmpArgs.Add(Calc(false));
-				}
-				else if (MainWindow.Tokens[MainWindow.TokenIndex].type == token_type.Ident)
-				{
-					if (MainWindow.Methods.TryGetValue(MainWindow.Tokens[MainWindow.TokenIndex].text, out Token arg_Method))
-					{
-						if (arg_Method.returnType != token_type.Int && arg_Method.returnType != token_type.Float && arg_Method.returnType != token_type.String) throw new Exception($"{MainWindow.Tokens[MainWindow.TokenIndex].type} {MainWindow.Tokens[MainWindow.TokenIndex].returnType} {MainWindow.Tokens[MainWindow.TokenIndex].text}: 잘못된 자료형입니다.");
-						Token res2 = MainWindow.Run(arg_Method);
-						if (res2.type != token_type.Var) throw new Exception($"{MainWindow.Tokens[MainWindow.TokenIndex].type} {MainWindow.Tokens[MainWindow.TokenIndex].returnType} {MainWindow.Tokens[MainWindow.TokenIndex].text}: 잘못된 자료형입니다.");
-						tmpArgs.Add(res2);
-					}
-					else if (MainWindow.Variables.TryGetValue(MainWindow.Tokens[MainWindow.TokenIndex].text, out Token tmp_Variable))
-					{
-						if (tmp_Variable.type != token_type.Var) throw new Exception($"{MainWindow.Tokens[MainWindow.TokenIndex].type} {MainWindow.Tokens[MainWindow.TokenIndex].returnType} {MainWindow.Tokens[MainWindow.TokenIndex].text}: 잘못된 자료형입니다.");
-						tmpArgs.Add(tmp_Variable);
-					}
-					else
-					{
-						throw new Exception($"{MainWindow.Tokens[MainWindow.TokenIndex].type} {MainWindow.Tokens[MainWindow.TokenIndex].returnType} {MainWindow.Tokens[MainWindow.TokenIndex].text} : 잘못된 식별자입니다.");
-					}
-				}
-				else
-				{
-					throw new Exception($"{MainWindow.Tokens[MainWindow.TokenIndex].type} {MainWindow.Tokens[MainWindow.TokenIndex].returnType} {MainWindow.Tokens[MainWindow.TokenIndex].text} : 잘못된 식별자입니다.");
-				}
-			}
-
-			Token code = MainWindow.Tokens[MainWindow.TokenIndex];
-			string pycode = "args = list()\n";
-			for (int i = 0; i < tmpArgs.Count; i++)
-			{
-				switch (tmpArgs[i].returnType)
-				{
-					case token_type.Int:
-						{
-							pycode += $"args.append(int(\"{tmpArgs[i].text}\"))\n";
-							break;
-						}
-					case token_type.Float:
-						{
-							pycode += $"args.append(float(\"{tmpArgs[i].text}\"))\n";
-							break;
-						}
-					case token_type.String:
-						{
-							pycode += $"args.append(\"{tmpArgs[i].text}\")\n";
-							break;
-						}
-					default:
-						{
-							throw new Exception($"{tmpArgs[i].type} {tmpArgs[i].returnType} {tmpArgs[i].text} : 잘못된 자료형입니다.");
-						}
-				}
-			}
-			pycode += code.text;
-
-			DirectoryInfo di = new DirectoryInfo($"{Path.GetTempPath()}DoMoolJung");
-			if (!di.Exists)
-				di.Create();
-			string FileName = $"{Path.GetTempPath()}DoMoolJung\\{Path.GetRandomFileName()}";
-
-			using (var sw = new StreamWriter(File.Create(FileName)))
-			{
-				sw.Write($"{pycode}");
-			}
-
-			Token res = new Token($"{{List:String}}", MainWindow.Tokens[MainWindow.TokenIndex].Line, token_type.List, token_type.String, new token_type[0] { }, ListHandler);
-			Process pro = new Process();
-
-			pro.StartInfo.FileName = "python";
-			pro.StartInfo.Arguments = FileName;
-			pro.StartInfo.CreateNoWindow = true;
-			pro.StartInfo.UseShellExecute = false;
-			pro.StartInfo.RedirectStandardOutput = true;
-			pro.StartInfo.RedirectStandardError = true;
-			pro.OutputDataReceived += (object sender, DataReceivedEventArgs outLine) =>
-			{
-				if (outLine.Data == null)
-				{
-					return;
-				}
-				else if (outLine.Data.StartsWith("echo "))
-				{
-					res.datas.Add(new Token(outLine.Data[5..], MainWindow.Tokens[MainWindow.TokenIndex].Line, token_type.Var, token_type.String));
-				}
-				else
-				{
-					Console.WriteLine(outLine.Data);
-				}
-			};
-
-			try
-			{
-				pro.Start();
-				pro.BeginOutputReadLine();
-			}
-			catch
-			{
-				throw new Exception($"{MainWindow.Tokens[MainWindow.TokenIndex].type} {MainWindow.Tokens[MainWindow.TokenIndex].returnType} {MainWindow.Tokens[MainWindow.TokenIndex].text} : 기기에 설치된 파이썬을 찾을 수 없습니다. 파이썬을 설치한 후 환경변수에 등록해 주십시오.");
-			}
-
-			string err = pro.StandardError.ReadToEnd();
-			if (err != "")
-			{
-				throw new Exception($"{MainWindow.Tokens[MainWindow.TokenIndex].type} {MainWindow.Tokens[MainWindow.TokenIndex].returnType} {MainWindow.Tokens[MainWindow.TokenIndex].text} : \n\n{err}");
-			}
-
-			return res;
-		}
-
-		public static Token Calc(bool isFormula)
-		{
-			Token a;
-			Token b;
-			Token op;
-			Token tmp;
-
-			if (isFormula)
-			{
-				a = MainWindow.Tokens[++MainWindow.TokenIndex];
-				if (a.type == token_type.Ident)
-				{
-					if (MainWindow.Variables.TryGetValue(a.text, out tmp))
-						a = tmp;
-					else if (MainWindow.Methods.TryGetValue(a.text, out tmp))
-						a = MainWindow.Run(tmp);
-					else
-						throw new Exception($"[{a.Line}] {a.text}: 잘못된 식별자입니다.");
-				}
-				else if (a.type == token_type.Equation)
-				{
-					a = Calc(false);
-				}
-				else if (a.type == token_type.Formula)
-				{
-					a = Calc(true);
-				}
-
-				MainWindow.TokenIndex++;
-
-				b = MainWindow.Tokens[++MainWindow.TokenIndex];
-				if (b.type == token_type.Ident)
-				{
-					if (MainWindow.Variables.TryGetValue(b.text, out tmp))
-						b = tmp;
-					else if (MainWindow.Methods.TryGetValue(b.text, out tmp))
-						b = MainWindow.Run(tmp);
-					else
-						throw new Exception($"[{b.Line}] {b.text}: 잘못된 식별자입니다.");
-				}
-				else if (b.type == token_type.Equation)
-				{
-					b = Calc(false);
-				}
-				else if (b.type == token_type.Formula)
-				{
-					b = Calc(true);
-				}
-
-				MainWindow.TokenIndex++;
-
-				op = MainWindow.Tokens[++MainWindow.TokenIndex];
-				if (op.type != token_type.Operator) throw new Exception($"[{op.Line}]  {op.text}: 잘못된 연산자입니다.");
-			}
-			else
-			{
-				a = MainWindow.Tokens[++MainWindow.TokenIndex];
-				if (a.type == token_type.Ident)
-				{
-					if (MainWindow.Variables.TryGetValue(a.text, out tmp))
-						a = tmp;
-					else if (MainWindow.Methods.TryGetValue(a.text, out tmp))
-						a = MainWindow.Run(tmp);
-					else
-						throw new Exception($"[{a.Line}] {a.text}: 잘못된 식별자입니다.");
-				}
-				else if (a.type == token_type.Equation)
-				{
-					a = Calc(false);
-				}
-				else if (a.type == token_type.Formula)
-				{
-					a = Calc(true);
-				}
-
-				op = MainWindow.Tokens[++MainWindow.TokenIndex];
-				if (op.type != token_type.Operator) throw new Exception($"[{op.Line}]  {op.text}: 잘못된 연산자입니다.");
-
-				b = MainWindow.Tokens[++MainWindow.TokenIndex];
-				if (b.type == token_type.Ident)
-				{
-					if (MainWindow.Variables.TryGetValue(b.text, out tmp))
-						b = tmp;
-					else if (MainWindow.Methods.TryGetValue(b.text, out tmp))
-						b = MainWindow.Run(tmp);
-					else
-						throw new Exception($"[{b.Line}] {b.text}: 잘못된 식별자입니다.");
-				}
-				else if (b.type == token_type.Equation)
-				{
-					b = Calc(false);
-				}
-				else if (b.type == token_type.Formula)
-				{
-					b = Calc(true);
-				}
-			}
-
-			switch (op.returnType)
-			{
-				case token_type.Plus:
-					{
-						return a + b;
-					}
-				case token_type.Minus:
-					{
-						return a - b;
-					}
-				case token_type.Multi:
-					{
-						return a * b;
-					}
-				case token_type.Divi:
-					{
-						return a / b;
-					}
-				case token_type.Modulo:
-					{
-						return a % b;
-					}
-				case token_type.Equal:
-					{
-						return a == b;
-					}
-				case token_type.Not_Equal:
-					{
-						return a != b;
-					}
-				case token_type.Greater:
-					{
-						return a > b;
-					}
-				case token_type.Less:
-					{
-						return a < b;
-					}
-				default:
-					{
-						return new Token("", a.Line, token_type.Null, token_type.Null);
-					}
-			}
-		}
 	}
 
 	public struct Token
 	{
 		public string text;
-		public int Line;
+		public long Line;
 		public token_type type;
 		public token_type returnType;
 		public token_type[] argTypes;
@@ -746,7 +792,7 @@ namespace DoMoolJung
 		public List<Token> datas;
 		public Func<Token[], Token> func;
 
-		public Token(string s, int line, token_type t, token_type r, token_type[] argType, Func<Token[], Token> fun)
+		public Token(string s, long line, token_type t, token_type r, token_type[] argType, Func<Token[], Token> fun)
 		{
 			text = s;
 			Line = line;
@@ -758,7 +804,7 @@ namespace DoMoolJung
 			datas = new();
 		}
 
-		public Token(string s, int line, token_type t, token_type r)
+		public Token(string s, long line, token_type t, token_type r)
 		{
 			text = s;
 			Line = line;
@@ -780,7 +826,7 @@ namespace DoMoolJung
 						{
 							if (b.returnType == token_type.Int || b.returnType == token_type.Float)
 							{
-								return new Token(((int)(av + bv)).ToString(), a.Line, a.type, a.returnType);
+								return new Token(((long)(av + bv)).ToString(), a.Line, a.type, a.returnType);
 							}
 						}
 						throw new Exception($"[{a.Line}] {a.text} {b.text} : 잘못된 자료형입니다.");
@@ -824,7 +870,7 @@ namespace DoMoolJung
 						{
 							if (b.returnType == token_type.Int || b.returnType == token_type.Float)
 							{
-								return new Token(((int)(av - bv)).ToString(), a.Line, a.type, a.returnType);
+								return new Token(((long)(av - bv)).ToString(), a.Line, a.type, a.returnType);
 							}
 						}
 						throw new Exception($"[{a.Line}] {a.text} {b.text} : 잘못된 자료형입니다.");
@@ -875,7 +921,7 @@ namespace DoMoolJung
 						{
 							if (b.returnType == token_type.Int || b.returnType == token_type.Float)
 							{
-								return new Token(((int)(av * bv)).ToString(), a.Line, a.type, a.returnType);
+								return new Token(((long)(av * bv)).ToString(), a.Line, a.type, a.returnType);
 							}
 						}
 						throw new Exception($"[{a.Line}] {a.text} {b.text} : 잘못된 자료형입니다.");
@@ -896,7 +942,7 @@ namespace DoMoolJung
 						if (b.returnType == token_type.Int)
 						{
 							StringBuilder tmp = new();
-							for (int i = int.Parse(b.text); i > 0; i--)
+							for (long i = long.Parse(b.text); i > 0; i--)
 							{
 								tmp.Append(a.text);
 							}
@@ -924,7 +970,7 @@ namespace DoMoolJung
 						{
 							if (b.returnType == token_type.Int || b.returnType == token_type.Float)
 							{
-								return new Token(((int)(av / bv)).ToString(), a.Line, a.type, a.returnType);
+								return new Token(((long)(av / bv)).ToString(), a.Line, a.type, a.returnType);
 							}
 						}
 						throw new Exception($"[{a.Line}] {a.text} {b.text} : 잘못된 자료형입니다.");
@@ -953,7 +999,7 @@ namespace DoMoolJung
 			{
 				if (a.returnType == token_type.Int && b.returnType == token_type.Int)
 				{
-					if (int.TryParse(a.text, out int av) && int.TryParse(b.text, out int bv))
+					if (long.TryParse(a.text, out long av) && long.TryParse(b.text, out long bv))
 					{
 						return new Token((av % bv).ToString(), a.Line, a.type, token_type.Int);
 					}
@@ -1100,20 +1146,14 @@ namespace DoMoolJung
 
 	public enum token_type
 	{
-		None = 0,//아무것도 아님
-		Null,//빈 줄
-
+		None = 0, Null,
 		Method, Flag, If, Else, Reset, Remove, Add, Size,//함수
-
 		Void, Int, Float, String, List, StringList, Code, Index,//리터럴
 		Ident, Declar, Var, Formula, Equation,//식별자
-
 		Operator, Plus, Minus, Multi, Divi, Modulo, //연산자
-
 		Brack, Brack_end,//소괄호
 		Block, Block_end,//블록
 		Assign,//대입 =
-		Comma,//콤마
 		Equal, Not_Equal, Less, Greater,//== != < > (비교 연산자)
 	};
 }

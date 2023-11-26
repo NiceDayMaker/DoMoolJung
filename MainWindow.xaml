@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:DoMoolJung"
         mc:Ignorable="d"
         Closing="Window_Closing"
-        Title="ㄷ井 두물정 1.0 - 이름없음*" WindowState="Maximized" Background="#4c5052" MinHeight="300" MinWidth="300" Height="600" Width="500">
+        Title="ㄷ井 두물정 1.0 - 이름없음*" WindowState="Maximized" Background="#4c5052" MinHeight="200" MinWidth="350" Height="600" Width="500">
 
     <Grid>
         <Grid.RowDefinitions>
